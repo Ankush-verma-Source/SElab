@@ -1,0 +1,212 @@
+<% layout('layouts/boilerplate') %>
+
+<style>
+  body {
+    background-color: #fafafa;
+    font-family: "Inter", sans-serif;
+  }
+
+  h1, h2, h3 {
+    color: #333;
+    font-weight: 600;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 40px auto;
+    background: white;
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  }
+
+  pre {
+    background-color: #f7f7f7;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-x: auto;
+    font-size: 14px;
+  }
+
+  .section {
+    margin-bottom: 30px;
+  }
+
+  .card {
+    background: #f9fafb;
+    border: 1px solid #e2e8f0;
+    padding: 15px 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+
+  ul {
+    padding-left: 20px;
+  }
+
+  li {
+    margin-bottom: 6px;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background 0.2s ease;
+  }
+
+  .btn-back {
+    background: #2563eb;
+    color: white;
+  }
+
+  .btn-back:hover {
+    background: #1d4ed8;
+  }
+
+  .btn-download {
+    background: #16a34a;
+    color: white;
+    margin-left: 10px;
+  }
+
+  .btn-download:hover {
+    background: #15803d;
+  }
+
+  .divider {
+    height: 1px;
+    background-color: #ddd;
+    margin: 25px 0;
+  }
+
+  .btn-container {
+    margin-top: 30px;
+  }
+</style>
+
+<div class="container" id="reportContent">
+  <h1><%= title %></h1>
+
+  <div class="section">
+    <h2>🧾 Input Code</h2>
+    <pre><%= input %></pre>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <h2>💡 Summary</h2>
+    <p><%= output.summary || 'No summary available.' %></p>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <h2>🔍 Function Details</h2>
+
+    <% if (output.functions && output.functions.length > 0) { %>
+      <% output.functions.forEach(func => { %>
+        <div class="card">
+          <h3><%= func.name %></h3>
+          <p><strong>Description:</strong> <%= func.description %></p>
+          <p><strong>Correctness:</strong> <%= func.correctness %></p>
+
+          <% if (func.potentialIssues && func.potentialIssues.length > 0) { %>
+            <p><strong>Potential Issues:</strong></p>
+            <ul>
+              <% func.potentialIssues.forEach(issue => { %>
+                <li><%= issue %></li>
+              <% }) %>
+            </ul>
+          <% } %>
+
+          <% if (func.optimizations && func.optimizations.length > 0) { %>
+            <p><strong>Optimizations:</strong></p>
+            <ul>
+              <% func.optimizations.forEach(opt => { %>
+                <li><%= opt %></li>
+              <% }) %>
+            </ul>
+          <% } %>
+        </div>
+      <% }) %>
+    <% } else { %>
+      <p>No function details available.</p>
+    <% } %>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <h2>🧭 Overall Recommendations</h2>
+
+    <% if (output.recommendations && output.recommendations.length > 0) { %>
+      <ul>
+        <% output.recommendations.forEach(rec => { %>
+          <li><%= rec %></li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <p>No recommendations available.</p>
+    <% } %>
+  </div>
+</div>
+
+<div class="btn-container" style="text-align:center;">
+  <a href="/home" class="btn btn-back">← Back to Home</a>
+  <button id="downloadPDF" class="btn btn-download">⬇ Download as PDF</button>
+</div>
+
+
+
+
+
+<!-- Include jsPDF + html2canvas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+  document.getElementById("downloadPDF").addEventListener("click", async () => {
+    const { jsPDF } = window.jspdf;
+    const report = document.getElementById("reportContent");
+
+    // Render the full content area into a high-res canvas
+    const canvas = await html2canvas(report, {
+      scale: 2,
+      scrollY: -window.scrollY,
+      useCORS: true
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    // Add first page
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    // Add extra pages if content exceeds one page
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+
+    pdf.save("<%= title.replace(/\s+/g, '_') %>.pdf");
+  });
+</script>
