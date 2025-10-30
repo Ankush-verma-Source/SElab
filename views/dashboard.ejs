@@ -1,0 +1,231 @@
+<% layout('layouts/boilerplate') %>
+<link rel="stylesheet" href="/css/dashboard.css" />
+
+<div class="container">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <button class="close-btn" onclick="toggleDashboard()">
+      <i class="fas fa-times"></i>
+    </button>
+    <h2><i class="fas fa-layer-group"></i> Dashboard</h2>
+    <nav>
+      <a class="nav-link" href="/dashboard"
+        ><i class="fas fa-chart-line"></i> Overview</a
+      >
+      <a class="nav-link" onclick="loadProfile()"
+        ><i class="fas fa-user"></i> Profile</a
+      >
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="content" id="content">
+    <h1 class="mb-4">
+      <i class="fas fa-folder-open"></i> Your Generated Content
+    </h1>
+
+    <div class="dashboard-main">
+      <!-- Filter Form -->
+      <form class="filter-form" method="GET" action="/dashboard/filter">
+        <div class="form-group">
+          <label for="type">Filter by Type:</label>
+          <select name="type" id="type">
+            <option value="">All</option>
+            <option value="mcq">MCQ</option>
+            <option value="summary">Summary</option>
+            <option value="quiz">Quiz</option>
+            <option value="explain">Explanation</option>
+            <option value="review">Code Review</option>
+            <option value="flashcards">Flashcards</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-filter">
+          <i class="fas fa-filter"></i> Apply
+        </button>
+      </form>
+
+      <!-- Content Cards -->
+      <% if (contents.length === 0) { %>
+      <p>No content generated yet.</p>
+      <% } else { %>
+      <div class="content-grid">
+        <% contents.forEach(c => { %>
+        <div class="content-card">
+          <h3>
+            <% if (c.type === "mcq") { %> MCQ <% } else if (c.type ===
+            "summary") { %> Summary <% } else if (c.type === "quiz") { %> Quiz
+            <% } else if (c.type === "review") { %> Code Review <% } else if
+            (c.type === "explain") { %> Code Explanation <% } else if (c.type
+            === "flashcards") { %> Flashcards <% } else { %> Unknown Type <% }
+            %>
+          </h3>
+
+          <p><strong>Content ID:</strong> <%= c._id %></p>
+          <p>
+            <strong>Date:</strong> <%= new
+            Date(c.createdAt).toLocaleString("en-IN") %>
+          </p>
+
+          <div class="utilbtn-container">
+            <a href="/dashboard/view/<%= c._id %>"
+              ><i class="fas fa-eye"></i> View</a
+            >
+            <button
+              class="btn-delete"
+              onclick="openDeletePreview(<%= JSON.stringify(c) %>)"
+            >
+              <i class="fas fa-trash"></i> Delete
+            </button>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+      <% } %>
+    </div>
+  </main>
+
+  <!-- Sidebar Reopen Area -->
+  <div class="reopen-area" id="reopen-area" onclick="toggleDashboard()">
+    <i class="fas fa-arrow-right"></i>
+  </div>
+
+  <!-- Delete Preview Modal -->
+  <div id="delete-preview-modal" class="modal-overlay" style="display: none">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeDeletePreview()">✖</button>
+      <h3 id="delete-preview-title">
+        <i class="fas fa-eye"></i> Preview Before Deleting
+      </h3>
+      <div id="delete-preview-body" class="modal-content scrollable"></div>
+
+      <form id="delete-form" method="POST">
+        <div class="modal-buttons">
+          <button
+            type="button"
+            class="cancel-btn"
+            onclick="closeDeletePreview()"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="delete-btn">
+            <i class="fas fa-trash-alt"></i> Confirm Delete
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- JS Section -->
+<script>
+  function loadProfile() {
+    fetch("/dashboard/profile")
+      .then((res) => res.text())
+      .then((html) => {
+        document.getElementById("content").innerHTML = html;
+      });
+    history.pushState(null, "", "/dashboard/profile");
+  }
+
+  function toggleDashboard() {
+    const sidebar = document.getElementById("sidebar");
+    const reopenArea = document.getElementById("reopen-area");
+    const isHidden = sidebar.classList.toggle("hidden");
+    reopenArea.style.display = isHidden ? "flex" : "none";
+  }
+
+  // Delete Preview Modal Logic
+  function openDeletePreview(content) {
+    const modal = document.getElementById("delete-preview-modal");
+    const body = document.getElementById("delete-preview-body");
+    const form = document.getElementById("delete-form");
+    form.action = `/dashboard/delete/${content._id}`;
+    body.innerHTML = "";
+
+    // Handle different content types
+    if (content.type === "summary") {
+      body.innerText = content.data;
+    } else if (content.type === "mcq" || content.type === "quiz") {
+      content.data.forEach((q, index) => {
+        const qDiv = document.createElement("div");
+        qDiv.classList.add("preview-question");
+        qDiv.innerHTML = `<strong>Q${index + 1}:</strong> ${q.question}`;
+        if (q.options) {
+          const ul = document.createElement("ul");
+          q.options.forEach((opt, i) => {
+            const li = document.createElement("li");
+            li.innerText = opt;
+            if (String.fromCharCode(65 + i) === q.correct) {
+              li.style.color = "green";
+              li.style.fontWeight = "bold";
+            }
+            ul.appendChild(li);
+          });
+          qDiv.appendChild(ul);
+        } else {
+          qDiv.innerHTML += `<p><em>Answer:</em> ${q.correct}</p>`;
+        }
+        body.appendChild(qDiv);
+      });
+    } else if (content.type === "review" || content.type === "explain") {
+      const data = content.data;
+
+      const summary = document.createElement("div");
+      summary.innerHTML = `<h4>Summary</h4><p>${data.summary}</p>`;
+      body.appendChild(summary);
+
+      if (data.functions && data.functions.length) {
+        const fnHeader = document.createElement("h4");
+        fnHeader.textContent = "Functions";
+        body.appendChild(fnHeader);
+
+        data.functions.forEach((fn) => {
+          const fnDiv = document.createElement("div");
+          fnDiv.classList.add("fn-section");
+          fnDiv.innerHTML = `
+            <p><strong>Name:</strong> ${fn.name}</p>
+            <p><strong>Description:</strong> ${fn.description}</p>
+            <p><strong>Correctness:</strong> ${fn.correctness}</p>
+          `;
+          if (fn.potentialIssues && fn.potentialIssues.length) {
+            const issues = fn.potentialIssues
+              .map((i) => `<li>${i}</li>`)
+              .join("");
+            fnDiv.innerHTML += `<p><strong>Potential Issues:</strong></p><ul>${issues}</ul>`;
+          }
+          if (fn.optimizations && fn.optimizations.length) {
+            const opts = fn.optimizations.map((o) => `<li>${o}</li>`).join("");
+            fnDiv.innerHTML += `<p><strong>Optimizations:</strong></p><ul>${opts}</ul>`;
+          }
+          body.appendChild(fnDiv);
+        });
+      }
+
+      if (data.recommendations && data.recommendations.length) {
+        const recDiv = document.createElement("div");
+        recDiv.innerHTML = `
+          <h4>Recommendations</h4>
+          <ul>${data.recommendations.map((r) => `<li>${r}</li>`).join("")}</ul>
+        `;
+        body.appendChild(recDiv);
+      }
+    } else if (content.type === "flashcards") {
+      content.data.forEach((card, index) => {
+        const cardDiv = document.createElement("div");
+        cardDiv.classList.add("preview-flashcard");
+        cardDiv.innerHTML = `
+      <p><strong>Q${index + 1}:</strong> ${card.question}</p>
+      <p><strong>A${index + 1}:</strong> ${card.answer}</p>
+      <hr>
+    `;
+        body.appendChild(cardDiv);
+      });
+    }
+
+    modal.style.display = "flex";
+  }
+
+  function closeDeletePreview() {
+    document.getElementById("delete-preview-modal").style.display = "none";
+  }
+</script>
