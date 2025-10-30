@@ -1,0 +1,38 @@
+{
+  "name": "selab",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ankush-verma-Source/SElab.git"
+  },
+  "author": "Ankush verma",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Ankush-verma-Source/SElab/issues"
+  },
+  "homepage": "https://github.com/Ankush-verma-Source/SElab#readme",
+  "description": "",
+  "dependencies": {
+    "@google/genai": "^1.28.0",
+    "axios": "^1.13.1",
+    "cloudinary": "^1.41.3",
+    "connect-flash": "^0.1.1",
+    "dotenv": "^17.2.3",
+    "ejs": "^3.1.10",
+    "ejs-mate": "^4.0.0",
+    "express": "^5.1.0",
+    "express-session": "^1.18.2",
+    "mongoose": "^8.19.2",
+    "multer": "^2.0.2",
+    "multer-storage-cloudinary": "^4.0.0",
+    "openai": "^6.7.0",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
+    "passport-local-mongoose": "^8.0.0",
+    "uuid": "^13.0.0"
+  }
+}
