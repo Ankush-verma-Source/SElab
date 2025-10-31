@@ -39,7 +39,7 @@ app.use(
 app.use(flash());
 
 async function main() {
-  await mongoose.connect("mongodb://127.0.0.1:27017/questiva");
+  await mongoose.connect(process.env.MONGO_URL);
 }
 main()
   .then(() => {
