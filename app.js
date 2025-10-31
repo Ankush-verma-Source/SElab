@@ -14,7 +14,7 @@ const LocalStrategy = require("passport-local").Strategy;
 const User = require("./models/User.js");
 const ejsMate = require("ejs-mate");
 const ExpressError = require("./util/expressError.js");
-
+const MongoStore = require("connect-mongo");
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
@@ -24,8 +24,21 @@ app.use(express.json());
 // new add for : upload folder
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.engine("ejs", ejsMate);
+
+const store = MongoStore.create({
+   mongoUrl: dbUrl,
+    crypto : {
+        secret : process.env.SECRET // process.env.SECRET
+    },
+    touchAfter: 24 * 3600, 
+})
+store.on("error", ()=>{
+    console.log("ERROR in MONGO SESSION STORE",err);
+});
+
 app.use(
   session({
+    store,
     secret: process.env.SECRET,
     resave: false,
     saveUninitialized: true,
