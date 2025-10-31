@@ -26,7 +26,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.engine("ejs", ejsMate);
 
 const store = MongoStore.create({
-   mongoUrl: dbUrl,
+   mongoUrl: process.env.MONGO_URL,
     crypto : {
         secret : process.env.SECRET // process.env.SECRET
     },
